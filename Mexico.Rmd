@@ -7,5 +7,5 @@ sampled along a salinity-alkalinity gradient
 
 MISE EN PLACE
 Dans le terminal, je télécharge mes données brutes .fastq grâce à la commande wget -i ../Data.brutes depuis mon dossier Data.Brutes
-Maintenant j'ai toutes mes données dans Data.Brutes
+Maintenant j'ai toutes mes données dans Data.Brutes.
 
