@@ -98,7 +98,56 @@ rownames(track) <- sample.names
 head(track)
 ```
 ```{r}
-taxa <- assignTaxonomy(seqtab.nochim, "~/tax/silva_nr_v132_train_set.fa.gz", multithread=TRUE)##jhdj
+library(phyloseq)
+```
+
+```{r}
+taxa <- assignTaxonomy(seqtab.nochim, "~/Mexico/silva_nr99_v138.2_toGenus_trainset.fa.gz", multithread=TRUE)
+```
+```{r}
+taxa.print <- taxa
+rownames(taxa.print) <- NULL
+head(taxa.print)
+```
+```{r}
+library(phyloseq); packageVersion("phyloseq")
+```
+```{r}
+library(Biostrings); packageVersion("Biostrings")
+```
+```{r}
+library(ggplot2); packageVersion("ggplot2")
+```
+```{r}
+theme_set(theme_bw())
+```
+
+```{r}
+samples.out <- rownames(seqtab.nochim)
+subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
+gender <- substr(subject,1,1)
+subject <- substr(subject,2,999)
+day <- as.integer(sapply(strsplit(samples.out, "D"), `[`, 2))
+samdf <- data.frame(Subject=subject, Gender=gender, Day=day)
+samdf$When <- "Early"
+samdf$When[samdf$Day>100] <- "Late"
+rownames(samdf) <- samples.out
+```
+```{r}
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+               sample_data(samdf), 
+               tax_table(taxa))
+ps <- prune_samples(sample_names(ps) != "Mock", ps) # Remove mock sample
+```
+```{r}
+dna <- Biostrings::DNAStringSet(taxa_names(ps))
+names(dna) <- taxa_names(ps)
+ps <- merge_phyloseq(ps, dna)
+taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
+ps
+```
+```{r}
+plot_richness(ps, measures=c("Shannon", "Simpson"))
 ```
 
 
