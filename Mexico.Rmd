@@ -149,5 +149,44 @@ ps
 ```{r}
 plot_richness(ps, measures=c("Shannon", "Simpson"))
 ```
+```{r}
+library(readr)
+metadata <- read_delim("SraRunTable.csv", 
+    delim = ";", escape_double = FALSE, trim_ws = TRUE)
+View(metadata)
+```
 
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tibble)
+
+taxa2 <- data.frame(taxa)
+seqtab_nochim2 <- data.frame(seqtab.nochim)
+```
+
+```{r}
+# Exemple de données
+# asv_table : tableau d'abondances (échantillons x ASV)
+# taxonomy : table des taxonomies avec une colonne 'Species'
+
+colnames(taxa2)[0] <- "ASV"
+colnames(seqtab_nochim2)[0] <- "Sample_ID"
+# Ajouter les noms des espèces à la table d'abondances
+asv_with_species <- seqtab.nochim %>%
+  as.data.frame() %>%
+  mutate(ASV = rownames(seqtab.nochim)) %>%
+  left_join(taxa2, by = "ASV")
+
+# Grouper les ASVs par espèce et résumer les abondances
+species_abundance <- asv_with_species %>%
+  select(-ASV) %>%  # Exclure la colonne ASV si non nécessaire
+  group_by(Species) %>%
+  summarise(across(everything(), sum))  # Somme des abondances pour chaque espèce
+
+# Transposer pour avoir les échantillons en lignes
+species_abundance <- species_abundance %>%
+  pivot_longer(-Species, names_to = "Sample", values_to = "Abundance")
+```
 
