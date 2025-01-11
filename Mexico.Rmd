@@ -149,44 +149,74 @@ ps
 ```{r}
 plot_richness(ps, measures=c("Shannon", "Simpson"))
 ```
+
 ```{r}
-library(readr)
-metadata <- read_delim("SraRunTable.csv", 
-    delim = ";", escape_double = FALSE, trim_ws = TRUE)
-View(metadata)
+save(seqtab.nochim, file="seqtab.nochim.RData")
+save(taxa, file="taxa.RData")
 ```
 
 ```{r}
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(tibble)
+file.exists("seqtab.nochim.RData")
+```
+```{r}
+metadata <- read.csv("SraRunTable.csv", sep = ";" , header=TRUE)
+```
 
-taxa2 <- data.frame(taxa)
-seqtab_nochim2 <- data.frame(seqtab.nochim)
+
+```{r}
+# Filtrer pour inclure uniquement les procaryotes
+ps_df_filtered <- ps_df %>%
+  filter(Phylum %in% c(
+    "Alphaproteobacteria", "Gammaproteobacteria", "Cyanobacteria",
+    "Actinobacteriota", "Bacteroidota", "Planctomycetota", 
+    "Firmicutes", "Verrucomicrobiota", "Other"
+  ))
+
+```
+```{r}
+# Graphique de barres empilées pour les procaryotes
+ggplot(ps_df_filtered, aes(x = Sample, y = Abundance, fill = Phylum)) +
+  geom_bar(stat = "identity", position = "fill") +
+  
+  # Ajouter une palette de couleurs pour les différents phylums
+  scale_fill_manual(values = c(
+    "Alphaproteobacteria" = "#1f77b4",
+    "Gammaproteobacteria" = "#ff7f0e",
+    "Cyanobacteria" = "#2ca02c",
+    "Actinobacteriota" = "#d62728",
+    "Bacteroidota" = "#9467bd",
+    "Planctomycetota" = "#8c564b",
+    "Firmicutes" = "#e377c2",
+    "Verrucomicrobiota" = "#7f7f7f",
+    "Other" = "grey"
+  )) +
+  
+  # Modifier les étiquettes et le thème
+  labs(
+    x = "Échantillon",
+    y = "Proportion d'abondance",
+    fill = "Phylum"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  )
+
+```
+```{r}
+# Normaliser les abondances par échantillon pour obtenir des proportions
+ps_df <- ps_df %>%
+  group_by(Sample) %>%
+  mutate(Abundance = Abundance / sum(Abundance))
+
 ```
 
 ```{r}
-# Exemple de données
-# asv_table : tableau d'abondances (échantillons x ASV)
-# taxonomy : table des taxonomies avec une colonne 'Species'
-
-colnames(taxa2)[0] <- "ASV"
-colnames(seqtab_nochim2)[0] <- "Sample_ID"
-# Ajouter les noms des espèces à la table d'abondances
-asv_with_species <- seqtab.nochim %>%
-  as.data.frame() %>%
-  mutate(ASV = rownames(seqtab.nochim)) %>%
-  left_join(taxa2, by = "ASV")
-
-# Grouper les ASVs par espèce et résumer les abondances
-species_abundance <- asv_with_species %>%
-  select(-ASV) %>%  # Exclure la colonne ASV si non nécessaire
-  group_by(Species) %>%
-  summarise(across(everything(), sum))  # Somme des abondances pour chaque espèce
-
-# Transposer pour avoir les échantillons en lignes
-species_abundance <- species_abundance %>%
-  pivot_longer(-Species, names_to = "Sample", values_to = "Abundance")
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:300]
+ps.top20 <- transform_sample_counts(ps, function(Phylum) Phylum/sum(Phylum))
+ps.top20 <- prune_taxa(top20, ps.top20)
+plot_bar(ps.top20, fill="Phylum")
 ```
-
